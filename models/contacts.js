@@ -17,6 +17,10 @@ phone: {
     type: Boolean,
     required: false,
   },
+   owner: {
+      type: Schema.Types.ObjectId,
+      ref: 'user',
+    },
 })
 
 const Contact = model('contacts', ContactSchema)
