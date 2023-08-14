@@ -15,64 +15,157 @@ const userschemaJoi = Joi.object({
 const contactController = {
     async getContacts(req, res, next) {
         try {
-            console.log(req.session);
-            const data = await Contacts.find();
-            res.json(data)
-    
+            const data = await Contacts.find({ owner: req.session.userID });
+            if (data.length > 0) {
+                res.status(201).json({
+                    code: "201",
+                    message: "Contact List",
+                    data: data,
+                }
+                )
+            } else {
+res.status(200).json({
+                    code: "200",
+                    message: "No contacts to display",
+                    
+                }
+                )
+            }
+            // if (!data) {
+            //     res.status(200).json({
+            //         code: '200',
+            //         message: "No contacts to display",
+            //     });
+            // } else {
+            //     res.status(201).json({
+            //        code: '201',
+            //         message: "Contact List",
+            //         data: res.json(data)
+            //     })
+            // }
         } catch (err) {
-            console.log(err)
-            res.json(err)
-        }
+             res.status(400).json({
+               code: '400',
+        Massage: "An error has accurred",
+      error: err,
+    });
+           }
 
     },
-    async createContact(req, res) {
+    async createContact(req, res, next) {
         try {
-                const newUser = await Contacts.create(req.body);
+            const { name, email, phone, favorie } = req.body;
+            const createContact = {
+                name,
+                email,
+                phone,
+                favorie,
+                owner: req.session.userID,
+            } 
+
+                const newUser = await Contacts.create(createContact);
                 res.json(newUser)
                 
     } catch (err) {
-            console.log(err)
-            res.json(err)
+           return res.status(400).json({
+        code: '400',
+               Massage: "An error has accurred",
+      error: err
+    });
+           }
+
+    },
+     async getSingleContacts(req, res, next) {
+        try {
+            const data = await Contacts.findOne({ _id: req.params.id, owner: req.session.userID });
+            if (!data) {
+                return res.status(404).json({
+                code: '404',
+                    message: "Not found",
+                });
+            } else {
+                return res.status(200).json({
+                    code: '200',
+                    message: "Singal Contact",
+                    data: res.json(data)
+                })
+            }
+        } catch (err) {
+           return res.status(400).json({
+
+               Massage: "An error has accurred",
+      error: err
+    });
         }
 
     },
-     async getSingleContacts(req, res) {
+     async deleteContacts(req, res, next) {
         try {
-            const data = await Contacts.findOne({ _id: req.params.id });
-            res.json(data)
+            const data = await Contacts.findOneAndDelete({ _id: req.params.id, owner: req.session.userID });
+             if (!data) {
+                return res.status(404).json({
+                    message: "Not found",
+                });
+            } else {
+                return res.status(200).json({
+                    message: "Contact Deleted",
+                    data: res.json(data)
+                })
+            }
         } catch (err) {
-            console.log(err)
-            res.json(err)
+           return res.status(400).json({
+code: '400',
+               Massage: "An error has accurred",
+      error: err
+    });
         }
 
     },
-     async deleteContacts(req, res) {
+      async updateContacts(req, res, next) {
         try {
-            const data = await Contacts.findOneAndDelete({ _id: req.params.id });
-            res.json(data)
+            const data = await Contacts.findOneAndUpdate({ _id: req.params.id, owner: req.session.userID }, {$set: req.body,}, {new: true,});
+            if (!data) {
+                return res.status(404).json({
+        code: '404',
+                    message: "Not found",
+                });
+            } else {
+                return res.status(200).json({
+                  code: '200',
+                    message: "Update Contact",
+                    data: res.json(data)
+                })
+            }
         } catch (err) {
-            console.log(err)
-            res.json(err)
+            return res.status(400).json({
+               code: '400',
+        Massage: "An error has accurred",
+      error: err
+    });
         }
 
     },
-      async updateContacts(req, res) {
+       async updateStatusContact(req, res, next) {
         try {
-            const data = await Contacts.findOneAndUpdate({ _id: req.params.id }, {$set: req.body,}, {new: true,});
-            res.json(data)
+            const data = await Contacts.findOneAndUpdate({ _id: req.params.id,owner: req.session.userID }, {$set: req.body,}, {new: true,});
+            if (!data) {
+                return res.status(404).json({
+                    code: '404',
+                    message: "Not found",
+                });
+            } else {
+                return res.status(200).json({
+                    code: '200',
+                    message: "Update favorite",
+                    data: res.json(data)
+                })
+            }
         } catch (err) {
-            console.log(err)
-            res.json(err)
-        }
-
-    },
-       async updateStatusContact(req, res) {
-        try {
-            const data = await Contacts.findOneAndUpdate({ _id: req.params.id }, {$set: req.body,}, {new: true,});
-            res.json(data)
-        } catch (err) {
-            console.log(err)
-            res.json(err)
+           return res.status(400).json({
+        code: '400',
+               Massage: "An error has accurred",
+      error: err
+    });
         }
 
     },
@@ -104,7 +197,8 @@ const contactController = {
                 const newUser = new Users({ password: hashed, email: email, subscription: subscription, token: token });
                 await newUser.save();
                 req.session.userToken = token;
-
+                req.session.userID = newUser._id
+                console.log(req.session)
                 res.status(201).json({
                     status: 'success',
                     code: 201,
@@ -119,7 +213,7 @@ const contactController = {
     },
 
     async userLogin(req, res, next) {
-        console.log(req.session);
+      
      const { error, value } =  userschemaJoi.validate(req.body, {abortEarly:false})
   if (error) {
     return res.status(400).json({
@@ -145,7 +239,7 @@ const contactController = {
       await user.save()
       console.log(user)
       req.session.userToken = token;
-      req.session.userID = user._id.ObjectId
+      req.session.userID = user._id
       console.log(req.session);
        return res.status(200).json({
            message: "OK",
@@ -164,10 +258,27 @@ const contactController = {
       res.json({ message: 'You are already signed out' });
     }
 
+    },
+    async userCurrent(req, res, next) {
+        if (!req.session.userToken) {
+            return res.status(401).json({
+                status: 'error',
+                code: 401,
+                message: 'Unauthorized',
+                
+            });
+         
+        }
+        const user = await Users.findOne({ token: req.session.userToken }).select('email subscription -_id')
+ if (user) {
+     return res.status(200).json({
+         code: 200,       
+         data: user,
+                
+            });
+ }
+
     }
-
-
-    
 }
 
 module.exports= contactController
