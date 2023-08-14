@@ -11,7 +11,7 @@ router.route('/users/signup').post(signedIn, createUser)
 router.route('/users/login').post(signedIn, userLogin)
 router.route('/users/logout').post(userLogout)
 router.route('/users/current').get(userCurrent)
-router.route('/users/patch').patch(patchUser)
+router.route('/patch/users').patch(patchUser)
 
 
 
