@@ -16,6 +16,8 @@ const contactController = {
     async getContacts(req, res, next) {
         try {
             const data = await Contacts.find({ owner: req.session.userID });
+            console.log(data)
+                        console.log(data.length)
             if (data.length > 0) {
                 res.status(201).json({
                     code: "201",
@@ -31,18 +33,7 @@ res.status(200).json({
                 }
                 )
             }
-            // if (!data) {
-            //     res.status(200).json({
-            //         code: '200',
-            //         message: "No contacts to display",
-            //     });
-            // } else {
-            //     res.status(201).json({
-            //        code: '201',
-            //         message: "Contact List",
-            //         data: res.json(data)
-            //     })
-            // }
+           
         } catch (err) {
              res.status(400).json({
                code: '400',
@@ -77,97 +68,81 @@ res.status(200).json({
     },
      async getSingleContacts(req, res, next) {
         try {
-            const data = await Contacts.findOne({ _id: req.params.id, owner: req.session.userID });
-            if (!data) {
-                return res.status(404).json({
-                code: '404',
-                    message: "Not found",
-                });
-            } else {
-                return res.status(200).json({
-                    code: '200',
-                    message: "Singal Contact",
-                    data: res.json(data)
-                })
-            }
+             const data = await Contacts.findOne({ owner: req.session.userID,  _id: req.params.id });
+            console.log("data", data)
+                res.status(201).json({
+                    code: "201",
+                    message: "Single Contact",
+                    data: data,
+                }
+                )
         } catch (err) {
-           return res.status(400).json({
-
-               Massage: "An error has accurred",
-      error: err
+             res.status(400).json({
+               code: '400',
+                 Massage: `No contact was found for id ${req.params.id}`,
+      error: err,
     });
-        }
-
+           }
     },
-     async deleteContacts(req, res, next) {
+    
+    
+    async deleteContacts(req, res, next) {
         try {
             const data = await Contacts.findOneAndDelete({ _id: req.params.id, owner: req.session.userID });
-             if (!data) {
-                return res.status(404).json({
-                    message: "Not found",
-                });
-            } else {
-                return res.status(200).json({
-                    message: "Contact Deleted",
-                    data: res.json(data)
-                })
+            console.log("data", data)
+            res.status(200).json({
+                code: "200",
+                message: "Contact Deleted",
+                data: data,
             }
+            )
         } catch (err) {
-           return res.status(400).json({
-code: '400',
-               Massage: "An error has accurred",
-      error: err
-    });
+            return res.status(400).json({
+                code: '400',
+                Massage: `No contact was found for id ${req.params.id}`,
+                error: err
+            });
         }
 
+    
     },
+    
       async updateContacts(req, res, next) {
         try {
-            const data = await Contacts.findOneAndUpdate({ _id: req.params.id, owner: req.session.userID }, {$set: req.body,}, {new: true,});
-            if (!data) {
-                return res.status(404).json({
-        code: '404',
-                    message: "Not found",
-                });
-            } else {
-                return res.status(200).json({
-                  code: '200',
+            const data = await Contacts.findOneAndUpdate({ _id: req.params.id, owner: req.session.userID }, { $set: req.body, }, { new: true, });
+             console.log("data", data)
+                res.status(200).json({
+                    code: "200",
                     message: "Update Contact",
-                    data: res.json(data)
-                })
-            }
+                    data: data,
+                }
+                )
         } catch (err) {
             return res.status(400).json({
                code: '400',
-        Massage: "An error has accurred",
+       Massage: `No contact was found for id ${req.params.id}`,
       error: err
     });
         }
 
     },
        async updateStatusContact(req, res, next) {
-        try {
-            const data = await Contacts.findOneAndUpdate({ _id: req.params.id,owner: req.session.userID }, {$set: req.body,}, {new: true,});
-            if (!data) {
-                return res.status(404).json({
-                    code: '404',
-                    message: "Not found",
-                });
-            } else {
-                return res.status(200).json({
-                    code: '200',
-                    message: "Update favorite",
-                    data: res.json(data)
-                })
-            }
-        } catch (err) {
-           return res.status(400).json({
-        code: '400',
-               Massage: "An error has accurred",
-      error: err
-    });
-        }
-
+           try {
+               const data = await Contacts.findOneAndUpdate({ _id: req.params.id, owner: req.session.userID }, { $set: req.body, }, { new: true, });
+               console.log("data", data)
+               res.status(200).json({
+                   code: "200",
+                   message: "Update Favorite",
+                   data: data,
+               }
+               )
+           } catch (err) {
+               return res.status(400).json({
+                   code: '400',
+                   Massage: `No contact was found for id ${req.params.id}`,
+                   error: err
+               });
+           }
     },
     
        
