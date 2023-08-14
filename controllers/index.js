@@ -12,6 +12,11 @@ const userschemaJoi = Joi.object({
   subscription: Joi.string().valid('starter', 'pro', 'business')
 })
 
+const subscriptionJoi = Joi.object({
+  subscription : Joi.string().valid('starter', 'pro', 'business')
+})
+
+
 const contactController = {
     async getContacts(req, res, next) {
         try {
@@ -173,7 +178,7 @@ res.status(200).json({
                 await newUser.save();
                 req.session.userToken = token;
                 req.session.userID = newUser._id
-                console.log(req.session)
+                
                 res.status(201).json({
                     status: 'success',
                     code: 201,
@@ -253,7 +258,44 @@ res.status(200).json({
             });
  }
 
-    }
+    },
+ 
+    
+    async patchUser(req, res, next) {
+console.log(req.session.userID)
+        if (!req.session.userToken) {
+            return res.status(401).json({
+                status: 'error',
+                code: 401,
+                message: 'Unauthorized',
+                
+            });
+         
+        } else {
+
+            const { error, value } = subscriptionJoi.validate(req.body, { abortEarly: false })
+            console.log(error)
+            console.log(value)
+            if (error) {
+                return res.status(400).json({
+                    message: "Invalid Subscription entered",
+                    data: error
+                });
+            } else {
+                const data = await Users.findOneAndUpdate({ _id: req.session.userID }, { $set: value, }, { new: true, }).select('email subscription -_id');
+                console.log(data)
+                return res.status(200).json({
+                    code: 200,
+                    data: data,
+                });
+
+
+            }
+
+        }
+    },
+
+
 }
 
 module.exports= contactController
