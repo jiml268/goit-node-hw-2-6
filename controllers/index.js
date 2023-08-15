@@ -20,9 +20,23 @@ const subscriptionJoi = Joi.object({
 const contactController = {
     async getContacts(req, res, next) {
         try {
-            const data = await Contacts.find({ owner: req.session.userID });
-            console.log(data)
-                        console.log(data.length)
+            const FavoriteQuery = req.query.favorite;
+            let data
+            console.log(FavoriteQuery)
+            if (!FavoriteQuery) {
+                data = await Contacts.find({ owner: req.session.userID });
+            } else {
+                if (FavoriteQuery === "true" || FavoriteQuery === "false") {
+                    data = await Contacts.find({ owner: req.session.userID, favorite: FavoriteQuery });
+                } else {
+                    return res.status(404).json({
+                    code: "404",
+                    message: "favorites must be true or false",
+                    data: FavoriteQuery,
+                }
+                )
+                }
+        }  
             if (data.length > 0) {
                 res.status(201).json({
                     code: "201",
@@ -149,6 +163,12 @@ res.status(200).json({
                });
            }
     },
+       
+       
+       
+       
+       
+       
     
        
     async createUser(req, res, next) {

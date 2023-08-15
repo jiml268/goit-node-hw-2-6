@@ -6,6 +6,8 @@ const {userLogin, createUser, userLogout, userCurrent,patchUser } = require('../
 router.route('/contacts').get(auth, getContacts).post(auth, createContact)
 router.route('/contacts/:id').get(auth, getSingleContacts).delete(auth, deleteContacts).put(auth, updateContacts)
 router.route('/contacts/:id/favorite').patch(auth, updateStatusContact)
+router.route('/contacts/:id/favorite').patch(auth, updateStatusContact)
+
 
 router.route('/users/signup').post(signedIn, createUser)
 router.route('/users/login').post(signedIn, userLogin)
