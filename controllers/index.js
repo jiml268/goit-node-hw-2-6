@@ -20,38 +20,28 @@ const subscriptionJoi = Joi.object({
 const contactController = {
     async getContacts(req, res, next) {
         try {
-            const FavoriteQuery = req.query.favorite;
+            const { favorite , page, limit } = req.query;
+            const startpage = parseInt(page)
+            const displayCnt = parseInt(limit)
+            console.log(favorite , startpage, displayCnt)
+           
             let data
-            console.log(FavoriteQuery)
-            if (!FavoriteQuery) {
-                data = await Contacts.find({ owner: req.session.userID });
+            if (!favorite ) {
+                data = await Contacts.find({ owner: req.session.userID }).skip((startpage * displayCnt) - displayCnt).limit(displayCnt);
             } else {
-                if (FavoriteQuery === "true" || FavoriteQuery === "false") {
-                    data = await Contacts.find({ owner: req.session.userID, favorite: FavoriteQuery });
+                if (favorite  === "true" || favorite  === "false") {
+                    data = await Contacts.find({ owner: req.session.userID, favorite: favorite  }).skip((startpage * displayCnt) - displayCnt).limit(displayCnt);
                 } else {
                     return res.status(404).json({
                     code: "404",
                     message: "favorites must be true or false",
-                    data: FavoriteQuery,
+                    data: favorite ,
                 }
                 )
                 }
-        }  
-            if (data.length > 0) {
-                res.status(201).json({
-                    code: "201",
-                    message: "Contact List",
-                    data: data,
-                }
-                )
-            } else {
-res.status(200).json({
-                    code: "200",
-                    message: "No contacts to display",
-                    
-                }
-                )
-            }
+            } 
+            return res.json(data);    
+            
            
         } catch (err) {
              res.status(400).json({
