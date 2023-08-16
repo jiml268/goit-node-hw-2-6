@@ -21,29 +21,55 @@ const contactController = {
     async getContacts(req, res, next) {
         try {
             const { favorite , page, limit } = req.query;
-            const startpage = parseInt(page)
-            const displayCnt = parseInt(limit)
-            console.log(favorite , startpage, displayCnt)
-           
+            if (favorite && favorite !== "true" && favorite !== "false") {
+                return res.status(400).json({
+                    code: "400",
+                    message: "Invalid parametets, favorites must be true or false",
+                    data: favorite,
+                })
+            }
+
+            let startpage = parseInt(page)
+            let displayCnt = parseInt(limit)
+            if (isNaN(startpage)) { startpage = 1 }
+            let postCount = 0
+            if (!favorite) {
+                postCount = await Contacts.countDocuments({ owner: req.session.userID }).exec();
+            } else {
+                postCount = await Contacts.countDocuments({ owner: req.session.userID, favorite: favorite }).exec();
+            }
+            console.log(postCount)
+if (postCount === 0 ) {
+                return res.status(404).json({
+                    code: "404",
+                    message: "No Contacts were found",
+                    
+                })
+            }
+            if (isNaN(displayCnt)) { displayCnt = postCount; startpage = 1 }
+            const totalPages = Math.ceil(postCount / displayCnt)
+            if (startpage < 1 || startpage > totalPages){
+            return res.status(400).json({
+                    code: "400",
+                    message: `Invalid page number.  page number must be 1 - ${totalPages}` ,
+                   
+                })
+            }
+
             let data
-            if (!favorite ) {
+             if (!favorite ) {
                 data = await Contacts.find({ owner: req.session.userID }).skip((startpage * displayCnt) - displayCnt).limit(displayCnt);
             } else {
-                if (favorite  === "true" || favorite  === "false") {
                     data = await Contacts.find({ owner: req.session.userID, favorite: favorite  }).skip((startpage * displayCnt) - displayCnt).limit(displayCnt);
-                } else {
-                    return res.status(404).json({
-                    code: "404",
-                    message: "favorites must be true or false",
-                    data: favorite ,
                 }
-                )
-                }
-            } 
-            return res.json(data);    
-            
-           
-        } catch (err) {
+            return res.status(200).json({
+                    code: "200",
+                    message: `Contact list page ${startpage} of ${totalPages}` ,
+                    data: data,
+                })
+
+
+            } catch (err) {
              res.status(400).json({
                code: '400',
         Massage: "An error has accurred",
@@ -64,7 +90,11 @@ const contactController = {
             } 
 
                 const newUser = await Contacts.create(createContact);
-                res.json(newUser)
+                 return res.status(201).json({
+                    code: "201",
+                    message: "Contact was created" ,
+                    data: newUser,
+                })
                 
     } catch (err) {
            return res.status(400).json({
@@ -75,7 +105,7 @@ const contactController = {
            }
 
     },
-     async getSingleContacts(req, res, next) {
+    async getSingleContacts(req, res, next) {
         try {
              const data = await Contacts.findOne({ owner: req.session.userID,  _id: req.params.id });
             console.log("data", data)
@@ -98,7 +128,6 @@ const contactController = {
     async deleteContacts(req, res, next) {
         try {
             const data = await Contacts.findOneAndDelete({ _id: req.params.id, owner: req.session.userID });
-            console.log("data", data)
             res.status(200).json({
                 code: "200",
                 message: "Contact Deleted",
@@ -119,7 +148,6 @@ const contactController = {
       async updateContacts(req, res, next) {
         try {
             const data = await Contacts.findOneAndUpdate({ _id: req.params.id, owner: req.session.userID }, { $set: req.body, }, { new: true, });
-             console.log("data", data)
                 res.status(200).json({
                     code: "200",
                     message: "Update Contact",
@@ -138,7 +166,6 @@ const contactController = {
        async updateStatusContact(req, res, next) {
            try {
                const data = await Contacts.findOneAndUpdate({ _id: req.params.id, owner: req.session.userID }, { $set: req.body, }, { new: true, });
-               console.log("data", data)
                res.status(200).json({
                    code: "200",
                    message: "Update Favorite",
@@ -171,7 +198,6 @@ const contactController = {
         } else {
             const { password, email, subscription } = value;
             const user = await Users.findOne({ email });
-            console.log(`user found is ${user}`)
             if (user) {
                 return res.status(409).json({
                     status: 'error',
@@ -227,10 +253,8 @@ const contactController = {
       const token = jwt.sign({ email }, process.env.JWT_privateKey, { expiresIn: '1h', })
       user.token = token;
       await user.save()
-      console.log(user)
       req.session.userToken = token;
       req.session.userID = user._id
-      console.log(req.session);
        return res.status(200).json({
            message: "OK",
            token: token,
@@ -241,7 +265,6 @@ const contactController = {
     async userLogout(req, res, next) {
         if (req.session.userToken) {
             req.session.destroy(() => {
-          console.log(req.session);
         res.json({ message: 'User was signed out' });
       });
     } else {
@@ -272,7 +295,6 @@ const contactController = {
  
     
     async patchUser(req, res, next) {
-console.log(req.session.userID)
         if (!req.session.userToken) {
             return res.status(401).json({
                 status: 'error',
@@ -284,8 +306,7 @@ console.log(req.session.userID)
         } else {
 
             const { error, value } = subscriptionJoi.validate(req.body, { abortEarly: false })
-            console.log(error)
-            console.log(value)
+           
             if (error) {
                 return res.status(400).json({
                     message: "Invalid Subscription entered",
@@ -293,7 +314,6 @@ console.log(req.session.userID)
                 });
             } else {
                 const data = await Users.findOneAndUpdate({ _id: req.session.userID }, { $set: value, }, { new: true, }).select('email subscription -_id');
-                console.log(data)
                 return res.status(200).json({
                     code: 200,
                     data: data,
