@@ -18,7 +18,7 @@ const sess = {
 };
 app.use(session(sess));
 
-
+app.use(express.static('public'))
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 app.use(cors());
