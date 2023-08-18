@@ -13,7 +13,7 @@ console.log(uploadPath)
 const imagesPath = path.join(process.cwd(), 'public/avatars');
 console.log(imagesPath)
 const Jimp = require("jimp");
-
+const db = require('../config')
 
 
 const userschemaJoi = Joi.object({
@@ -249,17 +249,18 @@ const contactController = {
                 data: error
             });
         } else {
-            const { password, email } = value;
+            const { password, email } =value;
             const user = await Users.findOne({ email });
+            console.log(user)
             if (!user) {
                 return res.status(401).json({
-                    message: "Email or password is wrong",
+                    message: "Email not found",
                 });
             }
             const validatePw = await user.checkPassword(password)
             if (!validatePw) {
                 return res.status(401).json({
-                    message: "Email or password is wrong",
+                    message: `Password is incorrect for email ${email}`,
                 });
             }
             const token = jwt.sign({ email }, process.env.JWT_privateKey, { expiresIn: '1h', })
@@ -268,9 +269,10 @@ const contactController = {
             req.session.userToken = token;
             req.session.userID = user._id
             return res.status(200).json({
-                message: "OK",
-                token: token,
-                data: user
+                code: "200",
+                message: "Login Successful"
+                // token: token,
+                // data: user
             });
         }
     },
@@ -383,6 +385,21 @@ return res.status(200).json({
                 });
         })   
     },
+    async startDB() {
+        try {
+            db.once('open', () => {
+            console.log('database is open')
+            })
+            return
+
+        } catch (err){
+            return err;
+    }
+    },
+
+    closetDB() {
+        db.close();
+    }
 }
 
 module.exports= contactController
