@@ -12,6 +12,7 @@ const uploadPath = path.join(process.cwd(), 'tmp');
 console.log(uploadPath)
 const imagesPath = path.join(process.cwd(), 'public/avatars');
 console.log(imagesPath)
+const Jimp = require("jimp");
 
 
 
@@ -362,7 +363,18 @@ const contactController = {
             });
             }
             const { path: tempName } = req.file;
-            const fileName = path.join(imagesPath, req.session.userID) + '.jpg'
+                await Jimp.read(tempName)
+                    .then((image) => {
+                        return image
+                            .resize(256, 256) // resize
+                            .write(tempName); // save
+                    })
+                    .catch((err) => {
+                        console.error(err);
+                    });
+            const ext = path.extname(tempName);
+console.log(ext)
+            const fileName = path.join(imagesPath, req.session.userID  + ext)
             await fs.rename(tempName, fileName)
             const data = await Users.findOneAndUpdate({ _id: req.session.userID }, { $set: {avatarURL: fileName}, }, { new: true, }).select('email subscription avatarURL -_id');
 return res.status(200).json({
