@@ -13,7 +13,6 @@ console.log(uploadPath)
 const imagesPath = path.join(process.cwd(), 'public/avatars');
 console.log(imagesPath)
 const Jimp = require("jimp");
-const db = require('../config')
 
 
 const userschemaJoi = Joi.object({
@@ -44,9 +43,13 @@ const contactController = {
             if (isNaN(startpage)) { startpage = 1 }
             let postCount = 0
             if (!favorite) {
-                postCount = await Contacts.countDocuments({ owner: req.session.userID }).exec();
+                // postCount = await Contacts.countDocuments({ owner: req.session.userID }).exec();
+                                postCount = await Contacts.countDocuments({}).exec();
+
             } else {
-                postCount = await Contacts.countDocuments({ owner: req.session.userID, favorite: favorite }).exec();
+                // postCount = await Contacts.countDocuments({ owner: req.session.userID, favorite: favorite }).exec();
+                postCount = await Contacts.countDocuments({ favorite: favorite }).exec();
+
             }
             console.log(postCount)
             if (postCount === 0) {
@@ -68,9 +71,13 @@ const contactController = {
 
             let data
             if (!favorite) {
-                data = await Contacts.find({ owner: req.session.userID }).skip((startpage * displayCnt) - displayCnt).limit(displayCnt);
+                // data = await Contacts.find({ owner: req.session.userID }).skip((startpage * displayCnt) - displayCnt).limit(displayCnt);
+                            data = await Contacts.find().skip((startpage * displayCnt) - displayCnt).limit(displayCnt);
+
             } else {
-                data = await Contacts.find({ owner: req.session.userID, favorite: favorite }).skip((startpage * displayCnt) - displayCnt).limit(displayCnt);
+                // data = await Contacts.find({ owner: req.session.userID, favorite: favorite }).skip((startpage * displayCnt) - displayCnt).limit(displayCnt);
+                data = await Contacts.find({ favorite: favorite }).skip((startpage * displayCnt) - displayCnt).limit(displayCnt);
+
             }
             return res.status(200).json({
                 code: "200",
@@ -242,14 +249,14 @@ const contactController = {
 
     async userLogin(req, res, next) {
       
-        const { error, value } = userschemaJoi.validate(req.body, { abortEarly: false })
+        const { error } = userschemaJoi.validate(req.body, { abortEarly: false })
         if (error) {
             return res.status(400).json({
                 message: "Bad Request",
                 data: error
             });
         } else {
-            const { password, email } =value;
+            const { password, email } =req.body;
             const user = await Users.findOne({ email });
             console.log(user)
             if (!user) {
@@ -385,21 +392,7 @@ return res.status(200).json({
                 });
         })   
     },
-    async startDB() {
-        try {
-            db.once('open', () => {
-            console.log('database is open')
-            })
-            return
-
-        } catch (err){
-            return err;
-    }
-    },
-
-    closetDB() {
-        db.close();
-    }
+   
 }
 
 module.exports= contactController
