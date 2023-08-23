@@ -9,10 +9,10 @@ const gravatar = require('gravatar');
 const path = require('path');
 const multer = require('multer');
 const uploadPath = path.join(process.cwd(), 'tmp');
-console.log(uploadPath)
 const imagesPath = path.join(process.cwd(), 'public/avatars');
-console.log(imagesPath)
 const Jimp = require("jimp");
+const { v4: uuidv4 } = require('uuid');
+const verifyemail = require('../utils/verifyemail')
 
 
 const userschemaJoi = Joi.object({
@@ -51,7 +51,6 @@ const contactController = {
                 postCount = await Contacts.countDocuments({ favorite: favorite }).exec();
 
             }
-            console.log(postCount)
             if (postCount === 0) {
                 return res.status(404).json({
                     code: "404",
@@ -106,11 +105,12 @@ const contactController = {
                 owner: req.session.userID,
             }
 
-            const newUser = await Contacts.create(createContact);
+            const newContact = await Contacts.create(createContact);
+            verifyemail(createContact)
             return res.status(201).json({
                 code: "201",
                 message: "Contact was created",
-                data: newUser,
+                data: newContact,
             })
                 
         } catch (err) {
@@ -125,7 +125,6 @@ const contactController = {
     async getSingleContacts(req, res, next) {
         try {
             const data = await Contacts.findOne({ owner: req.session.userID, _id: req.params.id });
-            console.log("data", data)
             res.status(201).json({
                 code: "201",
                 message: "Single Contact",
@@ -199,12 +198,6 @@ const contactController = {
     },
        
        
-       
-       
-       
-       
-    
-       
     async createUser(req, res, next) {
         const { error, value } = userschemaJoi.validate(req.body, { abortEarly: false })
         if (error) {
@@ -225,14 +218,23 @@ const contactController = {
                 });
             }
             try {
+
+
+
+
+
+
+
                 const url = gravatar.url(email, { s: '200', r: 'pg', d: '404' });
 
                 const hashed = await bcrypt.hash(password, saltRounds)
                 const token = jwt.sign({ email }, process.env.JWT_privateKey, { expiresIn: '1h', })
-                const newUser = new Users({ password: hashed, email: email, subscription: subscription, token: token, avatarURL: url });
+                const newUser = new Users({ password: hashed, email: email, subscription: subscription, token: token, avatarURL: url,verify: false, verificationToken: uuidv4(),});
                 await newUser.save();
-                req.session.userToken = token;
-                req.session.userID = newUser._id
+            verifyemail(newUser)
+
+                // req.session.userToken = token;
+                // req.session.userID = newUser._id
                 
                 res.status(201).json({
                     status: 'success',
@@ -258,18 +260,23 @@ const contactController = {
         } else {
             const { password, email } =req.body;
             const user = await Users.findOne({ email });
-            console.log(user)
+            
             if (!user) {
                 return res.status(401).json({
                     message: "Email not found",
                 });
             }
+            if (user && user.verify === false) {
+     return res.status(401).json({
+                    message: "Unauthorized Account has not been Varified",
+                });
+}
             const validatePw = await user.checkPassword(password)
             if (!validatePw) {
                 return res.status(401).json({
                     message: `Password is incorrect for email ${email}`,
                 });
-            }
+            } 
             const token = jwt.sign({ email }, process.env.JWT_privateKey, { expiresIn: '1h', })
             user.token = token;
             await user.save()
@@ -382,7 +389,6 @@ const contactController = {
                         console.error(err);
                     });
             const ext = path.extname(tempName);
-console.log(ext)
             const fileName = path.join(imagesPath, req.session.userID  + ext)
             await fs.rename(tempName, fileName)
             const data = await Users.findOneAndUpdate({ _id: req.session.userID }, { $set: {avatarURL: fileName}, }, { new: true, }).select('email subscription avatarURL -_id');
@@ -392,7 +398,60 @@ return res.status(200).json({
                 });
         })   
     },
-   
+
+    async userVerification(req, res) {
+        try {
+            await Users.findOneAndUpdate({ verificationToken: req.params.verificationToken },{ $set: {verificationToken: null, verify: true }, }, { new: true, });
+            return res.status(200).json({
+                code: "200",
+                message: 'Verification successful',
+            }
+            )
+            
+        } catch (err) {
+          return  res.status(404).json({
+                code: '404',
+                message: 'User not found'
+            });
+        }
+    },
+
+    async resendemail(req, res) {
+        const { email } = req.body;
+        if (!email) {
+             return  res.status(400).json({
+                code: '400',
+                message: 'missing required field email'
+            });
+        }
+         try {
+             const data = await Users.findOne({ email: email });
+             if (data.verify === false) {
+                 const newUser = new Users({ email: data.email, verificationToken: data.verificationToken, });
+                 verifyemail(newUser)
+                 res.status(200).json({
+                     code: "200",
+                     message: "Verification email sent",
+                     
+                 }
+                 )
+             } else {
+                 res.status(400).json({
+                     code: "400",
+                     message: "Verification has already been passed",
+                    
+                 })
+                }
+        } catch (err) {
+            res.status(400).json({
+                code: '400',
+                Massage: `No user was found for email ${email}`,
+                error: err,
+            });
+        }
+
+        
+    },
 }
 
 module.exports= contactController
