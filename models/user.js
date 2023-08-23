@@ -20,7 +20,17 @@ const userSchema = new Schema({
     type: String,
     default: null,
   },
-    avatarURL: String,
+  avatarURL: {
+    type: String,
+  },
+  verify: {
+    type: Boolean,
+    default: false,
+  },
+  verificationToken: {
+    type: String,
+    required: [true, 'Verify token is required'],
+  },
 })
 
 userSchema.methods.checkPassword  = async function (loginPw) {
